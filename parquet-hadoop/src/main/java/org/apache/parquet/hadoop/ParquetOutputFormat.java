@@ -143,6 +143,8 @@ public class ParquetOutputFormat<T> extends FileOutputFormat<Void, T> {
   public static final String MIN_ROW_COUNT_FOR_PAGE_SIZE_CHECK = "parquet.page.size.row.check.min";
   public static final String MAX_ROW_COUNT_FOR_PAGE_SIZE_CHECK = "parquet.page.size.row.check.max";
   public static final String ESTIMATE_PAGE_SIZE_CHECK = "parquet.page.size.check.estimate";
+  public static final String MIN_ROW_COUNT_FOR_BLOCK_SIZE_CHECK = "parquet.block.size.row.check.min";
+  public static final String MAX_ROW_COUNT_FOR_BLOCK_SIZE_CHECK = "parquet.block.size.row.check.max";
 
   public static JobSummaryLevel getJobSummaryLevel(Configuration conf) {
     String level = conf.get(JOB_SUMMARY_LEVEL);
@@ -243,18 +245,28 @@ public class ParquetOutputFormat<T> extends FileOutputFormat<Void, T> {
 
   public static int getMinRowCountForPageSizeCheck(Configuration configuration) {
     return configuration.getInt(MIN_ROW_COUNT_FOR_PAGE_SIZE_CHECK,
-        ParquetProperties.DEFAULT_MINIMUM_RECORD_COUNT_FOR_CHECK);
+        ParquetProperties.DEFAULT_MINIMUM_RECORD_COUNT_FOR_PAGE_SIZE_CHECK);
   }
 
   public static int getMaxRowCountForPageSizeCheck(Configuration configuration) {
     return configuration.getInt(MAX_ROW_COUNT_FOR_PAGE_SIZE_CHECK,
-        ParquetProperties.DEFAULT_MAXIMUM_RECORD_COUNT_FOR_CHECK);
+        ParquetProperties.DEFAULT_MAXIMUM_RECORD_COUNT_FOR_PAGE_SIZE_CHECK);
   }
 
   public static boolean getEstimatePageSizeCheck(Configuration configuration) {
     return configuration.getBoolean(ESTIMATE_PAGE_SIZE_CHECK,
         ParquetProperties.DEFAULT_ESTIMATE_ROW_COUNT_FOR_PAGE_SIZE_CHECK);
   }
+
+    public static int getMinRowCountForBlockSizeCheck(Configuration configuration) {
+        return configuration.getInt(MIN_ROW_COUNT_FOR_BLOCK_SIZE_CHECK,
+                ParquetProperties.DEFAULT_MINIMUM_RECORD_COUNT_FOR_BLOCK_SIZE_CHECK);
+    }
+
+    public static int getMaxRowCountForBlockSizeCheck(Configuration configuration) {
+        return configuration.getInt(MAX_ROW_COUNT_FOR_BLOCK_SIZE_CHECK,
+                ParquetProperties.DEFAULT_MAXIMUM_RECORD_COUNT_FOR_BLOCK_SIZE_CHECK);
+    }
 
   @Deprecated
   public static int getBlockSize(Configuration configuration) {
@@ -383,6 +395,8 @@ public class ParquetOutputFormat<T> extends FileOutputFormat<Void, T> {
       LOG.info("Page size checking is: {}", (props.estimateNextSizeCheck() ? "estimated" : "constant"));
       LOG.info("Min row count for page size check is: {}", props.getMinRowCountForPageSizeCheck());
       LOG.info("Max row count for page size check is: {}", props.getMaxRowCountForPageSizeCheck());
+      LOG.info("Min row count for block size check is: {}", props.getMinRowCountForBlockSizeCheck());
+      LOG.info("Max row count for block size check is: {}", props.getMaxRowCountForBlockSizeCheck());
     }
 
     WriteContext init = writeSupport.init(conf);

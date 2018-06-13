@@ -45,8 +45,10 @@ public class ParquetProperties {
   public static final boolean DEFAULT_IS_DICTIONARY_ENABLED = true;
   public static final WriterVersion DEFAULT_WRITER_VERSION = WriterVersion.PARQUET_1_0;
   public static final boolean DEFAULT_ESTIMATE_ROW_COUNT_FOR_PAGE_SIZE_CHECK = true;
-  public static final int DEFAULT_MINIMUM_RECORD_COUNT_FOR_CHECK = 100;
-  public static final int DEFAULT_MAXIMUM_RECORD_COUNT_FOR_CHECK = 10000;
+  public static final int DEFAULT_MINIMUM_RECORD_COUNT_FOR_PAGE_SIZE_CHECK = 100;
+  public static final int DEFAULT_MAXIMUM_RECORD_COUNT_FOR_PAGE_SIZE_CHECK = 10000;
+  public static final int DEFAULT_MINIMUM_RECORD_COUNT_FOR_BLOCK_SIZE_CHECK = 100;
+  public static final int DEFAULT_MAXIMUM_RECORD_COUNT_FOR_BLOCK_SIZE_CHECK = 10000;
 
   public static final ValuesWriterFactory DEFAULT_VALUES_WRITER_FACTORY = new DefaultValuesWriterFactory();
 
@@ -81,12 +83,14 @@ public class ParquetProperties {
   private final int minRowCountForPageSizeCheck;
   private final int maxRowCountForPageSizeCheck;
   private final boolean estimateNextSizeCheck;
+  private final int minRowCountForBlockSizeCheck;
+  private final int maxRowCountForBlockSizeCheck;
   private final ByteBufferAllocator allocator;
   private final ValuesWriterFactory valuesWriterFactory;
 
   private ParquetProperties(WriterVersion writerVersion, int pageSize, int dictPageSize, boolean enableDict, int minRowCountForPageSizeCheck,
-                            int maxRowCountForPageSizeCheck, boolean estimateNextSizeCheck, ByteBufferAllocator allocator,
-                            ValuesWriterFactory writerFactory) {
+                            int maxRowCountForPageSizeCheck, boolean estimateNextSizeCheck, int minRowCountForBlockSizeCheck,
+                            int maxRowCountForBlockSizeCheck, ByteBufferAllocator allocator, ValuesWriterFactory writerFactory) {
     this.pageSizeThreshold = pageSize;
     this.initialSlabSize = CapacityByteArrayOutputStream
       .initialSlabSizeHeuristic(MIN_SLAB_SIZE, pageSizeThreshold, 10);
@@ -96,6 +100,8 @@ public class ParquetProperties {
     this.minRowCountForPageSizeCheck = minRowCountForPageSizeCheck;
     this.maxRowCountForPageSizeCheck = maxRowCountForPageSizeCheck;
     this.estimateNextSizeCheck = estimateNextSizeCheck;
+    this.minRowCountForBlockSizeCheck = minRowCountForBlockSizeCheck;
+    this.maxRowCountForBlockSizeCheck = maxRowCountForBlockSizeCheck;
     this.allocator = allocator;
 
     this.valuesWriterFactory = writerFactory;
@@ -187,6 +193,14 @@ public class ParquetProperties {
     return estimateNextSizeCheck;
   }
 
+  public int getMinRowCountForBlockSizeCheck() {
+    return minRowCountForBlockSizeCheck;
+  }
+
+  public int getMaxRowCountForBlockSizeCheck() {
+    return maxRowCountForBlockSizeCheck;
+  }
+
   public static Builder builder() {
     return new Builder();
   }
@@ -200,9 +214,11 @@ public class ParquetProperties {
     private int dictPageSize = DEFAULT_DICTIONARY_PAGE_SIZE;
     private boolean enableDict = DEFAULT_IS_DICTIONARY_ENABLED;
     private WriterVersion writerVersion = DEFAULT_WRITER_VERSION;
-    private int minRowCountForPageSizeCheck = DEFAULT_MINIMUM_RECORD_COUNT_FOR_CHECK;
-    private int maxRowCountForPageSizeCheck = DEFAULT_MAXIMUM_RECORD_COUNT_FOR_CHECK;
+    private int minRowCountForPageSizeCheck = DEFAULT_MINIMUM_RECORD_COUNT_FOR_PAGE_SIZE_CHECK;
+    private int maxRowCountForPageSizeCheck = DEFAULT_MAXIMUM_RECORD_COUNT_FOR_PAGE_SIZE_CHECK;
     private boolean estimateNextSizeCheck = DEFAULT_ESTIMATE_ROW_COUNT_FOR_PAGE_SIZE_CHECK;
+    private int minRowCountForBlockSizeCheck = DEFAULT_MINIMUM_RECORD_COUNT_FOR_BLOCK_SIZE_CHECK;
+    private int maxRowCountForBlockSizeCheck = DEFAULT_MAXIMUM_RECORD_COUNT_FOR_BLOCK_SIZE_CHECK;
     private ByteBufferAllocator allocator = new HeapByteBufferAllocator();
     private ValuesWriterFactory valuesWriterFactory = DEFAULT_VALUES_WRITER_FACTORY;
 
@@ -216,6 +232,8 @@ public class ParquetProperties {
       this.minRowCountForPageSizeCheck = toCopy.minRowCountForPageSizeCheck;
       this.maxRowCountForPageSizeCheck = toCopy.maxRowCountForPageSizeCheck;
       this.estimateNextSizeCheck = toCopy.estimateNextSizeCheck;
+      this.minRowCountForBlockSizeCheck = toCopy.minRowCountForBlockSizeCheck;
+      this.maxRowCountForBlockSizeCheck = toCopy.maxRowCountForBlockSizeCheck;
       this.allocator = toCopy.allocator;
     }
 
@@ -287,6 +305,20 @@ public class ParquetProperties {
       return this;
     }
 
+    public Builder withMinRowCountForBlockSizeCheck(int min) {
+      Preconditions.checkArgument(min > 0,
+              "Invalid row count for block size check (negative): %s", min);
+      this.minRowCountForBlockSizeCheck = min;
+      return this;
+    }
+
+    public Builder withMaxRowCountForBlockSizeCheck(int max) {
+      Preconditions.checkArgument(max > 0,
+              "Invalid row count for block size check (negative): %s", max);
+      this.maxRowCountForBlockSizeCheck = max;
+      return this;
+    }
+
     public Builder withAllocator(ByteBufferAllocator allocator) {
       Preconditions.checkNotNull(allocator, "ByteBufferAllocator");
       this.allocator = allocator;
@@ -303,7 +335,7 @@ public class ParquetProperties {
       ParquetProperties properties =
         new ParquetProperties(writerVersion, pageSize, dictPageSize,
           enableDict, minRowCountForPageSizeCheck, maxRowCountForPageSizeCheck,
-          estimateNextSizeCheck, allocator, valuesWriterFactory);
+          estimateNextSizeCheck, minRowCountForBlockSizeCheck, maxRowCountForBlockSizeCheck, allocator, valuesWriterFactory);
       // we pass a constructed but uninitialized factory to ParquetProperties above as currently
       // creation of ValuesWriters is invoked from within ParquetProperties. In the future
       // we'd like to decouple that and won't need to pass an object to properties and then pass the

@@ -147,12 +147,12 @@ class InternalParquetRecordWriter<T> {
         LOG.info("mem size {} > {}: flushing {} records to disk.", memSize, nextRowGroupSize, recordCount);
         flushRowGroupToStore();
         initStore();
-        recordCountForNextMemCheck = min(max(MINIMUM_RECORD_COUNT_FOR_CHECK, recordCount / 2), MAXIMUM_RECORD_COUNT_FOR_CHECK);
+        recordCountForNextMemCheck = min(max(props.getMinRowCountForBlockSizeCheck(), recordCount / 2), props.getMaxRowCountForBlockSizeCheck());
         this.lastRowGroupEndPos = parquetFileWriter.getPos();
       } else {
         recordCountForNextMemCheck = min(
-            max(MINIMUM_RECORD_COUNT_FOR_CHECK, (recordCount + (long)(nextRowGroupSize / ((float)recordSize))) / 2), // will check halfway
-            recordCount + MAXIMUM_RECORD_COUNT_FOR_CHECK // will not look more than max records ahead
+            max(props.getMinRowCountForBlockSizeCheck(), (recordCount + (long)(nextRowGroupSize / ((float)recordSize))) / 2), // will check halfway
+            recordCount + props.getMaxRowCountForBlockSizeCheck() // will not look more than max records ahead
             );
         LOG.debug("Checked mem at {} will check again at: {}", recordCount, recordCountForNextMemCheck);
       }
